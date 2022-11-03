@@ -1,6 +1,6 @@
 import sqlite3
 
-from flask import Flask, g, render_template, request, session, flash, redirect, url_for, abort
+from flask import Flask, g, render_template, request, session, flash, redirect, url_for, abort, jsonify
 
 # configuration
 DATABASE = "flaskr.db"
@@ -44,15 +44,6 @@ def close_db(error):
     if hasattr(g, "sqlite_db"):
         g.sqlite_db.close()
 
-@app.route('/')
-def index():
-    """Searches the database for entries, then displays them."""
-    db = get_db()
-    cur = db.execute('select * from entries order by id desc')
-    entries = cur.fetchall()
-    return render_template('index.html', entries=entries)
-
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """User login/authentication/session management."""
@@ -89,6 +80,27 @@ def add_entry():
     db.commit()
     flash('New entry was successfully posted')
     return redirect(url_for('index'))
+
+@app.route('/delete/<post_id>', methods=['GET'])
+def delete_entry(post_id):
+    """Delete post from database"""
+    result = {'status': 0, 'message': 'Error'}
+    try:
+        db = get_db()
+        db.execute('delete from entries where id=' + post_id)
+        db.commit()
+        result = {'status': 1, 'message': "Post Deleted"}
+    except Exception as e:
+        result = {'status': 0, 'message': repr(e)}
+    return jsonify(result)
+
+@app.route('/')
+def index():
+    """Searches the database for entries, then displays them."""
+    db = get_db()
+    cur = db.execute('select * from entries order by id desc')
+    entries = cur.fetchall()
+    return render_template('index.html', entries=entries)
 
 if __name__ == "__main__":
     app.run()
